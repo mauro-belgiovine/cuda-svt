@@ -165,8 +165,9 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  gf_devData this_data = devData_vector.at(iter % num_devData);
 
 	  if ( TIMER ) start_time();
-	  setedata_GPU(this_data.tf, this_data.edata_dev, this_data.stream);
-	  tEvts = gf_unpack_cuda_GPU(ids, out1, out2, out3, n_words, this_data.evt_dev, this_data.d_tEvts, evta, &readout_words, this_data.stream );
+	  setedata_GPU(this_data.tf, this_data.edata_dev, this_data.stream, this_data.event);
+	  tEvts = gf_unpack_cuda_GPU(ids, out1, out2, out3, n_words, this_data.evt_dev, this_data.d_tEvts, evta, &readout_words, this_data.stream, this_data.event );
+
 	  if ( TIMER ) timer[3] = stop_time("+ Copy detector configuration data and unpacking NEVTS evts");
 
 	  //printf("iter %d readout_words %d\n", iter, readout_words);
@@ -204,7 +205,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
 	  if(iter != 0){	//if it is not the first iteration
 
-		printf("%d out data -----\n", iter-1);
+		//printf("%d out data -----\n", iter-1);
 	  	gf_devData previous_data = devData_vector.at(((iter-1) % num_devData));
 	  	cudaStreamSynchronize(previous_data.stream);
 	  	// build "cable" output structure
@@ -254,11 +255,13 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   	for(unsigned int t = 7; t <= 8; t++){
 		total_time += timer[t];
 	}
-	printf("print out and reset data %d (cumulative) time %f ms\n", iter, total_time);
+	printf("print out and reset data %d (cumulative) time %f ms\n", iter-1, total_time);
   }
 
   // close output file
   fclose(OUTCHECK);
+
+  printf("total iter %d \n", iter);
 
   for(int y = 0; y < devData_vector.size(); y++){
 	  devData_vector.at(y).free_devData();
@@ -277,7 +280,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
 }
 
-void setedata_GPU(tf_arrays_t tf, struct extra_data *edata_dev, cudaStream_t stream) {
+void setedata_GPU(tf_arrays_t tf, struct extra_data *edata_dev, cudaStream_t stream, cudaEvent_t event) {
 
   int len;
   len = SVTSIM_NBAR * FITBLOCK * sizeof(int);
@@ -286,6 +289,8 @@ void setedata_GPU(tf_arrays_t tf, struct extra_data *edata_dev, cudaStream_t str
   MY_CUDA_CHECK(cudaMemcpyAsync(edata_dev->lfitparfcon, tf->lfitparfcon, len, cudaMemcpyHostToDevice, stream));
   len = NEVTS * sizeof(int);
   MY_CUDA_CHECK(cudaMemcpyAsync(edata_dev->wedge, tf->wedge, len, cudaMemcpyHostToDevice, stream));
+  //record event to make unpacking-phase start at right time
+  MY_CUDA_CHECK(cudaEventRecord(event,stream));
 
 }
 
@@ -388,9 +393,14 @@ int main(int argc, char* argv[]) {
 
   for(unsigned int i = 0; i < n_iters; i++){
 
-	//SVT-GPU start
-      	svt_GPU(data_send, k, ptime[i], fileOut ,NOTHRUST);
+	if ( strcmp(where,"cpu") == 0 ) { // CPU
 
+		//TODO: CPU COMPUTATION HERE....
+
+	}else{
+		//SVT-GPU start
+		svt_GPU(data_send, k, ptime[i], fileOut ,NOTHRUST);
+	}
   } // end iterations
 
   // write file with times
