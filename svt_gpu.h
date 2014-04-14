@@ -8,6 +8,9 @@
 #include "semaphore.c"
 #include <thrust/device_vector.h>
 
+//#define DUMP_FOUT
+#define DUMP_RUNINFO
+
 //Utility functions definition
 int countlines(char *filename);
 inline void start_time();
@@ -191,9 +194,6 @@ void gf_devData::tf_init(){
 	MY_CUDA_CHECK(cudaMemsetAsync(fout_dev, 0, sizeof(fout_arrays), stream));
 	MY_CUDA_CHECK(cudaMemsetAsync(edata_dev, 0, sizeof(extra_data), stream));
 	init_arrays_GPU<<<SET_GRID_DIM(NEVTS, MAXROAD), MAXROAD, 0, stream>>>(fout_dev, evt_dev, d_tEvts);
-
-
-
 
 	// --- START inizializzazione tf
 	tf->out = svtsim_cable_new();

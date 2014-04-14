@@ -18,7 +18,7 @@ GENCODE_SM35    := -gencode arch=compute_35,code=sm_35
 GENCODE_FLAGS   :=  $(GENCODE_SM30) $(GENCODE_SM20) #$(GENCODE_SM13) $(GENCODE_SM35) $(GENCODE_SM10)
 
 NVCC = nvcc
-NVCCFLAGS = -O3 $(INCFLAG) -use_fast_math $(GENCODE_FLAGS) # $(DEBUG_FLAG) --ptxas-options=-v
+NVCCFLAGS = $(INCFLAG) -use_fast_math $(GENCODE_FLAGS) $(DEBUG_FLAG) #-O3 #--ptxas-options=-v
 #NVCCFLAGS = $(INCFLAG) $(GENCODE_SM30) $(DEBUG_FLAG) # -DTHRUST_DEBUG
 
 #NVCCFLAGS = -O3 $(INCFLAG)  --use_fast_math $(GENCODE_SM13) #use to compile on l2gpu with GTX285

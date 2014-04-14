@@ -70,21 +70,19 @@ __global__ void gf_fep_comb_GPU (evt_arrays* evt_dev, fep_arrays* fep_dev, int m
 		sh_fep_cable_sect[ir] = (evt_dev->evt_cable_sect[ie][ir] & gf_mask_GPU(SVT_SECT_WIDTH));
 		sh_fep_err[ir] = sh_evt_err[ir];
 
-	  }
+		evt_dev->evt_err[ie][ir] = sh_evt_err[ir];
 
-	  evt_dev->evt_err[ie][ir] = sh_evt_err[ir];
+		fep_dev->fep_ncmb[ie][ir] = sh_fep_ncmb[ir];
+		fep_dev->fep_zid[ie][ir] = sh_fep_zid[ir];
+		fep_dev->fep_road[ie][ir] = sh_fep_road[ir];
+		fep_dev->fep_sect[ie][ir] = sh_fep_sect[ir];
+		fep_dev->fep_cable_sect[ie][ir] = sh_fep_cable_sect[ir];
+		fep_dev->fep_err[ie][ir] = sh_fep_err[ir];
 
-	  fep_dev->fep_ncmb[ie][ir] = sh_fep_ncmb[ir];
-	  fep_dev->fep_zid[ie][ir] = sh_fep_zid[ir];
-	  fep_dev->fep_road[ie][ir] = sh_fep_road[ir];
-	  fep_dev->fep_sect[ie][ir] = sh_fep_sect[ir];
-	  fep_dev->fep_cable_sect[ie][ir] = sh_fep_cable_sect[ir];
-	  fep_dev->fep_err[ie][ir] = sh_fep_err[ir];
-
-	  fep_dev->fep_nroads[ie]  = evt_dev->evt_nroads[ie];
-	  fep_dev->fep_ee_word[ie] = evt_dev->evt_ee_word[ie];
-	  fep_dev->fep_err_sum[ie] = evt_dev->evt_err_sum[ie];
-  //}
+		fep_dev->fep_nroads[ie]  = evt_dev->evt_nroads[ie];
+		fep_dev->fep_ee_word[ie] = evt_dev->evt_ee_word[ie];
+		fep_dev->fep_err_sum[ie] = evt_dev->evt_err_sum[ie];
+  }
 }
 
 /*//STRIDE loop version

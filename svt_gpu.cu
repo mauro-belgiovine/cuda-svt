@@ -180,6 +180,52 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  gf_fep_GPU( this_data.evt_dev, this_data.fep_dev, tEvts, this_data.stream );
 	  if ( TIMER ) timer[4] =stop_time("+ compute fep combinations");
 
+#ifdef DUMP_RUNINFO
+	  // ---- DEBUG PURPOSE -----
+
+	  int comb_evt = 0; int tot_comb_evt = 0;
+	  if ( TIMER ) start_time();
+	  struct fep_arrays *fep = (struct fep_arrays *) malloc(sizeof(fep_arrays));
+	  MY_CUDA_CHECK(cudaMemcpy(fep, this_data.fep_dev, sizeof(fep_arrays), cudaMemcpyDeviceToHost));
+	  cudaStreamSynchronize(this_data.stream);
+	  if ( TIMER ) stop_time("[DEBUG] copy data");
+
+	  if ( TIMER ) start_time();
+	  for(int z = 0; z < NEVTS; z++){
+		  for(int r = 0; r < MAXROAD; r++){
+			  if(fep->fep_ncmb[z][r] != 0){
+				  comb_evt += fep->fep_ncmb[z][r];
+	              //printf("\t evt %d road %d ncomb = %d \n",z, r, fep->fep_ncmb[z][r]);
+	          }
+	      }
+	      printf("\t evt %d ncmb: %d \n",z, comb_evt);
+	      tot_comb_evt += comb_evt;
+	      comb_evt = 0;
+	  }
+	  if ( TIMER ) stop_time("[DEBUG] read combinations");
+	  printf("\t total ncmb over 100 evt * 64 roads: %d \n", tot_comb_evt);
+/*
+	  if ( TIMER ) start_time();
+	  int nhit_evt = 0; int tot_nhit_evt = 0;
+
+	  for(int z = 0; z < NEVTS; z++){
+		  for(int r = 0; r < MAXROAD; r++){
+			  for(int c = 0; c < MAXCOMB; c++){
+				  for(int p = 0; p < NSVX_PLANE; p++){
+					  nhit_evt += fep->fep_hit[z][r][c][p];
+				  }
+			  }
+		  }
+		  printf("\t evt %d nhit: %d \n",z, comb_evt);
+		  tot_nhit_evt += nhit_evt;
+		  nhit_evt = 0;
+	  }
+
+	  if ( TIMER ) stop_time("[DEBUG] read hit number");
+	  printf("\t total hits over 100 evt * 64 roads: %d \n", tot_nhit_evt);*/
+	  // ------------------------
+#endif
+
 	  if ( TIMER ) start_time();
 	  // Fit and set Fout
 	  gf_fit_GPU(this_data.fep_dev, this_data.evt_dev, this_data.edata_dev, this_data.fit_dev, this_data.fout_dev, tEvts, this_data.stream);
@@ -359,10 +405,10 @@ int main(int argc, char* argv[]) {
   int skip = 0;
   int n_iters = N_LOOPS+skip;
 
-  float timerange = 0;
+  //float timerange = 0;
   float ptime[N_LOOPS][10];
 
-  struct timeval tBegin, tEnd;
+  //struct timeval tBegin, tEnd;
 
   // read input file
   FILE* hbout = fopen(fileIn,"r");
