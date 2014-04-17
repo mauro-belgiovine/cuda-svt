@@ -84,7 +84,6 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
   xmlData_create(&doc, &root_node); //create xml doc
 
-  if(doc == NULL) printf("doc null\n");
 #endif
 
   // --- start INIT STRUCTURES ---
@@ -163,6 +162,23 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   unsigned int readout_words = 0;
   unsigned int iter = 0;
 
+#ifdef DUMP_RUNINFO
+
+  char buff[32];
+  xmlNodePtr run_node = xmlNewNode(NULL, BAD_CAST "run");
+  xmlAddChild(root_node, run_node);
+
+  xmlNodePtr init_timing_node = xmlNewNode(NULL, BAD_CAST "init_timing");
+  xmlAddChild(run_node, init_timing_node);
+  sprintf(buff,"%f ms",timer[0]);
+  xmlNewChild(init_timing_node, NULL, BAD_CAST "struct_init", BAD_CAST buff);
+  sprintf(buff,"%f ms",timer[1]);
+  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_copy_gpu", BAD_CAST buff);
+  sprintf(buff,"%f ms",timer[2]);
+  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_decode_gpu", BAD_CAST buff);
+
+#endif
+
   // open output file
   FILE* OUTCHECK = fopen(fileOut, "w");
 
@@ -171,6 +187,13 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   //loop over all n_words from input file
   while(readout_words < n_words ){
 
+#ifdef DUMP_RUNINFO
+
+	   xmlNodePtr iter_node = xmlNewNode(NULL, BAD_CAST "iter");
+	   sprintf(buff,"%d",iter);
+	   xmlNewProp(iter_node, BAD_CAST "n", BAD_CAST buff);
+	   xmlAddChild(run_node, iter_node);
+#endif
 	  gf_devData this_data = devData_vector.at(iter % num_devData);
 
 	  if ( TIMER ) start_time();
@@ -230,7 +253,6 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
 	  for(int z = 0; z < NEVTS; z++){
 
-		  char buff[32];
 		  xmlNodePtr evt_node = xmlNewNode(NULL, BAD_CAST "event");
 		  sprintf(buff,"%d",z);
 		  xmlNewProp(evt_node, BAD_CAST "n", BAD_CAST buff);
@@ -287,7 +309,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
 	      }
 
-	      xmlData_addEvt(root_node, evt_node);
+	      xmlData_addEvt(iter_node, evt_node);
 
 	  }
 	  if ( TIMER ) stop_time("[DEBUG] read combinations and nhit");
@@ -324,7 +346,22 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 		  	 total_time = 0;
 		}
 
+
+
 	  }
+
+#ifdef DUMP_RUNINFO
+	  xmlNodePtr iter_timing_node = xmlNewNode(NULL, BAD_CAST "timing");
+	  xmlAddChild(iter_node, iter_timing_node);
+	  sprintf(buff,"%f ms",timer[3]);
+	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copyconf_unpack", BAD_CAST buff);
+	  sprintf(buff,"%f ms",timer[4]);
+	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fep", BAD_CAST buff);
+	  sprintf(buff,"%f ms",timer[5]);
+	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fit", BAD_CAST buff);
+	  sprintf(buff,"%f ms",timer[6]);
+	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copy_output", BAD_CAST buff);
+#endif
 
 	  iter++;
 
