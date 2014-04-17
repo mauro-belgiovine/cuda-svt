@@ -11,6 +11,11 @@
 //#define DUMP_FOUT
 #define DUMP_RUNINFO
 
+#ifdef DUMP_RUNINFO
+	#include <libxml/parser.h>
+	#include <libxml/tree.h>
+#endif
+
 //Utility functions definition
 int countlines(char *filename);
 inline void start_time();
@@ -20,6 +25,9 @@ void setedata_GPU(tf_arrays_t tf, struct extra_data *edata_dev, cudaStream_t str
 void set_outcable(tf_arrays_t tf);
 void help(char* prog);
 
+void xmlData_create(xmlDocPtr *doc, xmlNodePtr *root_node);
+int xmlData_close(xmlDocPtr doc, char *filename);
+void xmlData_addEvt(xmlNodePtr root_node, xmlNodePtr evt_node);
 
 // global variables
 int VERBOSE = 0;

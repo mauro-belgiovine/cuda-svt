@@ -78,6 +78,15 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   int tEvts=0;
   cudaGetDeviceProperties(&deviceProp, 0);
 
+#ifdef DUMP_RUNINFO
+  xmlDocPtr doc = NULL;       	/* document pointer */
+  xmlNodePtr root_node = NULL;	/* root node pointer */
+
+  xmlData_create(&doc, &root_node); //create xml doc
+
+  if(doc == NULL) printf("doc null\n");
+#endif
+
   // --- start INIT STRUCTURES ---
   if ( TIMER ) start_time();
   //struct evt_arrays* evta = (evt_arrays*)malloc(sizeof(struct evt_arrays));
@@ -180,52 +189,6 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  gf_fep_GPU( this_data.evt_dev, this_data.fep_dev, tEvts, this_data.stream );
 	  if ( TIMER ) timer[4] =stop_time("+ compute fep combinations");
 
-#ifdef DUMP_RUNINFO
-	  // ---- DEBUG PURPOSE -----
-
-	  int comb_evt = 0; int tot_comb_evt = 0;
-	  if ( TIMER ) start_time();
-	  struct fep_arrays *fep = (struct fep_arrays *) malloc(sizeof(fep_arrays));
-	  MY_CUDA_CHECK(cudaMemcpy(fep, this_data.fep_dev, sizeof(fep_arrays), cudaMemcpyDeviceToHost));
-	  cudaStreamSynchronize(this_data.stream);
-	  if ( TIMER ) stop_time("[DEBUG] copy data");
-
-	  if ( TIMER ) start_time();
-	  for(int z = 0; z < NEVTS; z++){
-		  for(int r = 0; r < MAXROAD; r++){
-			  if(fep->fep_ncmb[z][r] != 0){
-				  comb_evt += fep->fep_ncmb[z][r];
-	              //printf("\t evt %d road %d ncomb = %d \n",z, r, fep->fep_ncmb[z][r]);
-	          }
-	      }
-	      printf("\t evt %d ncmb: %d \n",z, comb_evt);
-	      tot_comb_evt += comb_evt;
-	      comb_evt = 0;
-	  }
-	  if ( TIMER ) stop_time("[DEBUG] read combinations");
-	  printf("\t total ncmb over 100 evt * 64 roads: %d \n", tot_comb_evt);
-/*
-	  if ( TIMER ) start_time();
-	  int nhit_evt = 0; int tot_nhit_evt = 0;
-
-	  for(int z = 0; z < NEVTS; z++){
-		  for(int r = 0; r < MAXROAD; r++){
-			  for(int c = 0; c < MAXCOMB; c++){
-				  for(int p = 0; p < NSVX_PLANE; p++){
-					  nhit_evt += fep->fep_hit[z][r][c][p];
-				  }
-			  }
-		  }
-		  printf("\t evt %d nhit: %d \n",z, comb_evt);
-		  tot_nhit_evt += nhit_evt;
-		  nhit_evt = 0;
-	  }
-
-	  if ( TIMER ) stop_time("[DEBUG] read hit number");
-	  printf("\t total hits over 100 evt * 64 roads: %d \n", tot_nhit_evt);*/
-	  // ------------------------
-#endif
-
 	  if ( TIMER ) start_time();
 	  // Fit and set Fout
 	  gf_fit_GPU(this_data.fep_dev, this_data.evt_dev, this_data.edata_dev, this_data.fit_dev, this_data.fout_dev, tEvts, this_data.stream);
@@ -248,6 +211,89 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
 	  	total_time = 0;
 	  }
+
+#ifdef DUMP_RUNINFO
+
+	  // ---- DEBUG PURPOSE -----
+
+	  int nhit_evt = 0;
+
+	  if ( TIMER ) start_time();
+	  struct fep_arrays *fep = (struct fep_arrays *) malloc(sizeof(fep_arrays));
+	  MY_CUDA_CHECK(cudaMemcpy(fep, this_data.fep_dev, sizeof(fep_arrays), cudaMemcpyDeviceToHost));
+	  struct evt_arrays *evt = (struct evt_arrays *) malloc(sizeof(evt_arrays));
+	  MY_CUDA_CHECK(cudaMemcpy(evt, this_data.evt_dev, sizeof(evt_arrays), cudaMemcpyDeviceToHost));
+	  cudaStreamSynchronize(this_data.stream);
+	  if ( TIMER ) stop_time("[DEBUG] copy data");
+
+	  if ( TIMER ) start_time();
+
+	  for(int z = 0; z < NEVTS; z++){
+
+		  char buff[32];
+		  xmlNodePtr evt_node = xmlNewNode(NULL, BAD_CAST "event");
+		  sprintf(buff,"%d",z);
+		  xmlNewProp(evt_node, BAD_CAST "n", BAD_CAST buff);
+
+		  sprintf(buff,"%d",this_data.tf->fout_ntrks[z]);
+		  xmlNewChild(evt_node, NULL, BAD_CAST "fout_ntracks", BAD_CAST buff);
+
+	      xmlNodePtr hit_list_node = xmlNewNode(NULL, BAD_CAST "hit_list");
+	      xmlAddChild(evt_node, hit_list_node);
+
+	      for(int r = 0; r < MAXROAD; r++){
+
+	    	  xmlNodePtr road_node = xmlNewNode(NULL, BAD_CAST "road");
+	    	  sprintf(buff,"%d",r);
+	    	  xmlNewProp(road_node, BAD_CAST "n", BAD_CAST buff);
+
+	    	  if(fep->fep_ncmb[z][r] != 0){
+	    		  sprintf(buff,"%d",fep->fep_ncmb[z][r]);
+	    		  xmlNewChild(road_node, NULL, BAD_CAST "fep_ncomb", BAD_CAST buff);
+	    	  }
+
+	    	  for(int p = 0; p < NSVX_PLANE; p++){
+	       		for(int m = 0; m < MAX_HIT; m++){
+	       			if(evt->evt_hit[z][r][p][m] != 0) nhit_evt++;
+	       		}
+	    	  }
+
+
+
+	    	  if(nhit_evt > 0){
+
+	    		  xmlAddChild(hit_list_node, road_node);
+
+	    		  //printf("evt_hit [%d, %d] \n", z, r);
+	      		  for(int p = 0; p < NSVX_PLANE; p++){
+
+	      			xmlNodePtr plane_node = xmlNewNode(NULL, BAD_CAST "plane");
+	      			sprintf(buff,"%d",p);
+	      			xmlNewProp(plane_node, BAD_CAST "n", BAD_CAST buff);
+	      			xmlAddChild(road_node, plane_node);
+
+	      		  	//printf("\t plane %d: ", p);
+	      		  	for(int m = 0; m < MAX_HIT; m++){
+	      		  		if(evt->evt_hit[z][r][p][m] != 0){
+							sprintf(buff,"%x",evt->evt_hit[z][r][p][m]);
+							xmlNewChild(plane_node, NULL, BAD_CAST "hit", BAD_CAST buff);
+							//printf("%x ", evt->evt_hit[z][r][p][m]);
+	      		  		}
+	      		  	}
+	      		  //printf("\n");
+	      		  }
+	    	  }
+	    	  nhit_evt = 0;
+
+	      }
+
+	      xmlData_addEvt(root_node, evt_node);
+
+	  }
+	  if ( TIMER ) stop_time("[DEBUG] read combinations and nhit");
+	  // ------------------------
+
+#endif
 
 	  if(iter != 0){	//if it is not the first iteration
 
@@ -306,6 +352,9 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
   // close output file
   fclose(OUTCHECK);
+#ifdef DUMP_RUNINFO
+  printf("save result %d \n", xmlData_close(doc, "./test.xml"));
+#endif
 
   printf("total iter %d \n", iter);
 
@@ -543,9 +592,9 @@ void get_mean(float *times_array, int count, float *mean, float *stdev) {
   *stdev = sqrt(abs((sumsqr/(float)count) - pow(*mean,2)));
 }
 
+// count the number of lines in the file called filename
 int countlines(char *filename)
 {
-  // count the number of lines in the file called filename
   FILE *fp = fopen(filename,"r");
   int ch=0;
   int lines=0;
@@ -566,3 +615,58 @@ int countlines(char *filename)
 
   return lines;
 }
+
+//create the xml-file for saving execution data
+void xmlData_create(xmlDocPtr *doc, xmlNodePtr *root_node){
+
+#if defined(LIBXML_TREE_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
+
+    LIBXML_TEST_VERSION;
+
+    /*
+     * Creates a new document, a node and set it as a root node
+     */
+    *doc = xmlNewDoc(BAD_CAST "1.0");
+    *root_node = xmlNewNode(NULL, BAD_CAST "svt_run_data");
+    xmlDocSetRootElement(*doc, *root_node);
+
+#else
+	printf("ERROR: no libxml2 tree support!\n");
+#endif
+
+}
+
+int xmlData_close(xmlDocPtr doc, char *filename){
+#if defined(LIBXML_TREE_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
+
+	int result;
+	result = xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
+	/*free the document */
+	xmlFreeDoc(doc);
+
+	/*
+	 *Free the global variables that may
+	 *have been allocated by the parser.
+	 */
+	xmlCleanupParser();
+
+	return result;
+#else
+	printf("ERROR: no libxml2 tree support!\n");
+#endif
+}
+
+//add event-node to xml
+void xmlData_addEvt(xmlNodePtr root_node, xmlNodePtr evt_node){
+
+#if defined(LIBXML_TREE_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
+	xmlAddChild(root_node, evt_node);
+#else
+	printf("ERROR: no libxml2 tree support!\n");
+#endif
+
+}
+
+
+
+
