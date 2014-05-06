@@ -14,6 +14,8 @@
 #ifdef DUMP_RUNINFO
 	#include <libxml/parser.h>
 	#include <libxml/tree.h>
+	#include <libxml/xpath.h>
+	#include <libxml/xpathInternals.h>
 #endif
 
 //Utility functions definition
@@ -28,6 +30,7 @@ void help(char* prog);
 void xmlData_create(xmlDocPtr *doc, xmlNodePtr *root_node);
 int xmlData_close(xmlDocPtr doc, char *filename);
 void xmlData_addEvt(xmlNodePtr root_node, xmlNodePtr evt_node);
+void xmlData_addTiming(xmlDocPtr doc, char * node_name, float time_ms, unsigned int iter);
 
 // global variables
 int VERBOSE = 0;
@@ -39,6 +42,11 @@ cudaDeviceProp deviceProp;
 // CUDA timer macros
 cudaEvent_t c_start, c_stop;
 
+#ifdef DUMP_RUNINFO
+xmlDocPtr doc = NULL;       	/* document pointer */
+xmlNodePtr root_node = NULL;	/* root node pointer */
+unsigned int run_counter = 0;
+#endif
 // SVT-GPU execution data-class
 
 typedef struct tf_arrays_gpu *tf_gpu_t;

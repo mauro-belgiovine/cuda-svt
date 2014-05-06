@@ -78,14 +78,6 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   int tEvts=0;
   cudaGetDeviceProperties(&deviceProp, 0);
 
-#ifdef DUMP_RUNINFO
-  xmlDocPtr doc = NULL;       	/* document pointer */
-  xmlNodePtr root_node = NULL;	/* root node pointer */
-
-  xmlData_create(&doc, &root_node); //create xml doc
-
-#endif
-
   // --- start INIT STRUCTURES ---
   if ( TIMER ) start_time();
   //struct evt_arrays* evta = (evt_arrays*)malloc(sizeof(struct evt_arrays));
@@ -166,16 +158,20 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
   char buff[32];
   xmlNodePtr run_node = xmlNewNode(NULL, BAD_CAST "run");
+  sprintf(buff,"%d",run_counter); //run_counter is a global variable
+  run_counter++; //increment run_counter
+  xmlNewProp(run_node, BAD_CAST "n", BAD_CAST buff);
   xmlAddChild(root_node, run_node);
-
-  xmlNodePtr init_timing_node = xmlNewNode(NULL, BAD_CAST "init_timing");
-  xmlAddChild(run_node, init_timing_node);
-  sprintf(buff,"%f ms",timer[0]);
-  xmlNewChild(init_timing_node, NULL, BAD_CAST "struct_init", BAD_CAST buff);
-  sprintf(buff,"%f ms",timer[1]);
-  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_copy_gpu", BAD_CAST buff);
-  sprintf(buff,"%f ms",timer[2]);
-  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_decode_gpu", BAD_CAST buff);
+  if ( TIMER ){
+	  xmlNodePtr init_timing_node = xmlNewNode(NULL, BAD_CAST "init_timing");
+	  xmlAddChild(run_node, init_timing_node);
+	  sprintf(buff,"%f ms",timer[0]);
+	  xmlNewChild(init_timing_node, NULL, BAD_CAST "struct_init", BAD_CAST buff);
+	  sprintf(buff,"%f ms",timer[1]);
+	  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_copy_gpu", BAD_CAST buff);
+	  sprintf(buff,"%f ms",timer[2]);
+	  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_decode_gpu", BAD_CAST buff);
+  }
 
 #endif
 
@@ -230,7 +226,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  	for(unsigned int t = 3; t <= 6; t++){
 	  		total_time += timer[t];
 	  	}
-	  	printf("iter %d (cumulative) time %f ms\n", iter, total_time);
+	  	//printf("iter %d (cumulative) time %f ms\n", iter, total_time);
 
 	  	total_time = 0;
 	  }
@@ -331,9 +327,9 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  	if ( TIMER ) start_time();
 	  	for (int i=0; i< previous_data.tf->out->ndata; i++) fprintf(OUTCHECK,"%.6x\n", previous_data.tf->out->data[i]);
 	  	if ( TIMER ) timer[8] = stop_time("- print output on file");
-	  	#ifdef DUMP_FOUT
+#ifdef DUMP_FOUT
 	  	dump_fout(previous_data.tf);
-	  	#endif
+#endif
 	  	if ( TIMER ) start_time();
 	  	previous_data.tf_init();
 	  	if ( TIMER ) timer[9] = stop_time("- reset data");
@@ -342,25 +338,33 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 			 for(unsigned int t = 7; t <= 9; t++){
 		  		total_time += timer[t];
 			 }
-		  	 printf("print out and reset data %d (cumulative) time %f ms\n", iter-1, total_time);
+		  	 //printf("print out and reset data %d (cumulative) time %f ms\n", iter-1, total_time);
 		  	 total_time = 0;
 		}
 
-
+/*#ifdef DUMP_RUNINFO
+		if(TIMER){
+			xmlData_addTiming(doc, "cable_out_cpu", timer[7], iter-1);
+			xmlData_addTiming(doc, "print_fileout_cpu", timer[8], iter-1);
+			xmlData_addTiming(doc, "reset_data_cpu", timer[9], iter-1);
+		}
+#endif*/
 
 	  }
 
 #ifdef DUMP_RUNINFO
-	  xmlNodePtr iter_timing_node = xmlNewNode(NULL, BAD_CAST "timing");
-	  xmlAddChild(iter_node, iter_timing_node);
-	  sprintf(buff,"%f ms",timer[3]);
-	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copyconf_unpack", BAD_CAST buff);
-	  sprintf(buff,"%f ms",timer[4]);
-	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fep", BAD_CAST buff);
-	  sprintf(buff,"%f ms",timer[5]);
-	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fit", BAD_CAST buff);
-	  sprintf(buff,"%f ms",timer[6]);
-	  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copy_output", BAD_CAST buff);
+	  if(TIMER){
+		  xmlNodePtr iter_timing_node = xmlNewNode(NULL, BAD_CAST "timing");
+		  xmlAddChild(iter_node, iter_timing_node);
+		  sprintf(buff,"%f ms",timer[3]);
+		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copyconf_unpack", BAD_CAST buff);
+		  sprintf(buff,"%f ms",timer[4]);
+		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fep", BAD_CAST buff);
+		  sprintf(buff,"%f ms",timer[5]);
+		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fit", BAD_CAST buff);
+		  sprintf(buff,"%f ms",timer[6]);
+		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copy_output", BAD_CAST buff);
+	  }
 #endif
 
 	  iter++;
@@ -384,20 +388,26 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   	for(unsigned int t = 7; t <= 8; t++){
 		total_time += timer[t];
 	}
-	printf("print out and reset data %d (cumulative) time %f ms\n", iter-1, total_time);
+	//printf("print out and reset data %d (cumulative) time %f ms\n", iter-1, total_time);
   }
+
+#ifdef DUMP_RUNINFO
+  if(TIMER){
+	  xmlData_addTiming(doc, "cable_out_cpu", timer[7], iter-1);
+	  xmlData_addTiming(doc, "print_fileout_cpu", timer[8], iter-1);
+  }
+#endif
 
   // close output file
   fclose(OUTCHECK);
-#ifdef DUMP_RUNINFO
-  printf("save result %d \n", xmlData_close(doc, "./test.xml"));
-#endif
 
-  printf("total iter %d \n", iter);
+  //printf("total iter %d \n", iter);
 
   for(int y = 0; y < devData_vector.size(); y++){
 	  devData_vector.at(y).free_devData();
   }
+
+  devData_vector.clear();
 
   cudaFree(d_data_in);
 
@@ -523,6 +533,10 @@ int main(int argc, char* argv[]) {
 
   fclose(hbout);
 
+#ifdef DUMP_RUNINFO
+  xmlData_create(&doc, &root_node); //create xml doc
+#endif
+
   for(unsigned int i = 0; i < n_iters; i++){
 
 	if ( strcmp(where,"cpu") == 0 ) { // CPU
@@ -534,6 +548,10 @@ int main(int argc, char* argv[]) {
 		svt_GPU(data_send, k, ptime[i], fileOut ,NOTHRUST);
 	}
   } // end iterations
+
+#ifdef DUMP_RUNINFO
+  printf("save result %d \n", xmlData_close(doc, "./test.xml"));
+#endif
 
   // write file with times
   /*if ( TIMER ) {
@@ -604,7 +622,7 @@ inline float stop_time(const char *msg) {
   cudaEventRecord(c_stop, 0);
   cudaEventSynchronize(c_stop);
   cudaEventElapsedTime(&elapsedTime, c_start, c_stop);
-  printf("Time to %s: %.3f ms\n", msg, elapsedTime);
+  //printf("Time to %s: %.3f ms\n", msg, elapsedTime);
   cudaEventDestroy(c_start);
   cudaEventDestroy(c_stop);
   return elapsedTime;
@@ -704,6 +722,64 @@ void xmlData_addEvt(xmlNodePtr root_node, xmlNodePtr evt_node){
 
 }
 
+void xmlData_addTiming(xmlDocPtr doc, char * node_name, float time_ms, unsigned int iter){
+
+	char buff[32];
+	xmlXPathContextPtr xpathCtx;
+	xmlXPathObjectPtr xpathObj;
+
+	/* Create xpath evaluation context */
+	xpathCtx = xmlXPathNewContext(doc);
+	if(xpathCtx == NULL) {
+		fprintf(stderr,"Error: unable to create new XPath context\n");
+	}
+	/* Evaluate xpath expression */
+	sprintf(buff,"//iter[@n='%d']/timing", iter);
+	xpathObj = xmlXPathEvalExpression(BAD_CAST buff, xpathCtx);
+	if(xpathObj == NULL) {
+        fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n", buff);
+    }
+
+	int size = (xpathObj) ? xpathObj->nodesetval->nodeNr : 0;
+	/*
+     * NOTE: the nodes are processed in reverse order, i.e. reverse document
+     *       order because xmlNodeSetContent can actually free up descendant
+     *       of the node and such nodes may have been selected too ! Handling
+     *       in reverse order ensure that descendant are accessed first, before
+     *       they get removed. Mixing XPath and modifications on a tree must be
+     *       done carefully !
+     */
+    for(int i = size - 1; i >= 0; i--) {
+
+    	sprintf(buff,"%f ms",time_ms);
+    	xmlNewChild(xpathObj->nodesetval->nodeTab[i], NULL, BAD_CAST node_name, BAD_CAST buff);
+
+
+    	/*
+    	 * All the elements returned by an XPath query are pointers to
+    	 * elements from the tree *except* namespace nodes where the XPath
+    	 * semantic is different from the implementation in libxml2 tree.
+    	 * As a result when a returned node set is freed when
+    	 * xmlXPathFreeObject() is called, that routine must check the
+    	 * element type. But node from the returned set may have been removed
+    	 * by xmlNodeSetContent() resulting in access to freed data.
+    	 * This can be exercised by running
+    	 *       valgrind xpath2 test3.xml '//discarded' discarded
+    	 * There is 2 ways around it:
+		 *   - make a copy of the pointers to the nodes from the result set
+	   	 *     then call xmlXPathFreeObject() and then modify the nodes
+	   	 * or
+	   	 *   - remove the reference to the modified nodes from the node set
+	   	 *     as they are processed, if they are not namespace nodes.
+	   	 */
+	   	if (xpathObj->nodesetval->nodeTab[i]->type != XML_NAMESPACE_DECL) xpathObj->nodesetval->nodeTab[i] = NULL;
+	}
+
+    /* Cleanup of XPath data */
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+
+}
 
 
 
