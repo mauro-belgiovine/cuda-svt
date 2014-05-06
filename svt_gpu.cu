@@ -342,13 +342,13 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 		  	 total_time = 0;
 		}
 
-/*#ifdef DUMP_RUNINFO
+#ifdef DUMP_RUNINFO
 		if(TIMER){
 			xmlData_addTiming(doc, "cable_out_cpu", timer[7], iter-1);
 			xmlData_addTiming(doc, "print_fileout_cpu", timer[8], iter-1);
 			xmlData_addTiming(doc, "reset_data_cpu", timer[9], iter-1);
 		}
-#endif*/
+#endif
 
 	  }
 
@@ -734,7 +734,7 @@ void xmlData_addTiming(xmlDocPtr doc, char * node_name, float time_ms, unsigned 
 		fprintf(stderr,"Error: unable to create new XPath context\n");
 	}
 	/* Evaluate xpath expression */
-	sprintf(buff,"//iter[@n='%d']/timing", iter);
+	sprintf(buff,"//run[@n='%d']/iter[@n='%d']/timing", run_counter-1, iter);
 	xpathObj = xmlXPathEvalExpression(BAD_CAST buff, xpathCtx);
 	if(xpathObj == NULL) {
         fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n", buff);

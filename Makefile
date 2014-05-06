@@ -17,7 +17,7 @@ GENCODE_SM20    := -gencode arch=compute_20,code=sm_20
 GENCODE_SM30    := -gencode arch=compute_30,code=sm_30 
 GENCODE_SM35    := -gencode arch=compute_35,code=sm_35
 GENCODE_SM35    := -gencode arch=compute_35,code=sm_35
-GENCODE_FLAGS   :=  $(GENCODE_SM30) $(GENCODE_SM20) $(GENCODE_SM35) #$(GENCODE_SM13)  $(GENCODE_SM10)
+GENCODE_FLAGS   :=  $(GENCODE_SM20) $(GENCODE_SM30) $(GENCODE_SM35) #$(GENCODE_SM13)  $(GENCODE_SM10)
 
 NVCC = nvcc
 NVCCFLAGS = $(INCFLAG) -use_fast_math $(GENCODE_FLAGS) $(DEBUG_FLAG) #-O3 #--ptxas-options=-v
