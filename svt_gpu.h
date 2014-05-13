@@ -3,10 +3,10 @@
 #include "svt_utils.h"
 #include "cycles.h"
 #include <math.h>
-
+#include <vector>
 #include <sched.h>
 #include "semaphore.c"
-#include <thrust/device_vector.h>
+//#include <thrust/device_vector.h>
 
 //#define DUMP_FOUT
 #define DUMP_RUNINFO

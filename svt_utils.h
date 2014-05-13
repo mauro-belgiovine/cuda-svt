@@ -1,6 +1,6 @@
 #include <cuda.h>
 #include "svtsim_functions.h"
-#include <thrust/device_vector.h>
+//#include <thrust/device_vector.h>
 
 #define MAX(x,y) ((x)>(y) ? (x):(y))
 
@@ -173,7 +173,7 @@ extern "C" {
   svtsim_cable_t * svtsim_cable_new(void);
 
   unsigned int gf_unpack_cuda_GPU(int *ids, int *out1, int *out2, int *out3, int n_words, struct evt_arrays *evt_dev, int* d_tEvts, struct evt_arrays *evta, unsigned int *start_word, cudaStream_t stream, cudaEvent_t event );
-  void gf_unpack_thrust_GPU(thrust::device_vector<unsigned int> d_vec, int n_words, struct evt_arrays *evt_dev, int *d_tEvts );
+  //void gf_unpack_thrust_GPU(thrust::device_vector<unsigned int> d_vec, int n_words, struct evt_arrays *evt_dev, int *d_tEvts );
   void gf_fep_GPU( evt_arrays* evt_dev, fep_arrays* fep_dev, int maxEvt , cudaStream_t stream );
   void gf_fit_GPU(struct fep_arrays* fep_dev, struct evt_arrays* evt_dev, struct extra_data* edata_dev,
                 struct fit_arrays* fit_dev, struct fout_arrays* fout_dev, int maxEvt, cudaStream_t stream);

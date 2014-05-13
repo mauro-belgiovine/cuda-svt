@@ -35,7 +35,8 @@ NVCCFLAGS = $(INCFLAG) -use_fast_math $(GENCODE_FLAGS) $(DEBUG_FLAG) #-O3 #--ptx
 
 all: svt_gpu 
 
-svt_gpu: svt_gpu.o gf_unpack_cuda.o gf_unpack_thrust.o gf_fep.o gf_fit.o svtsim_functions.o
+#svt_gpu: svt_gpu.o gf_unpack_cuda.o gf_unpack_thrust.o gf_fep.o gf_fit.o svtsim_functions.o
+svt_gpu: svt_gpu.o gf_unpack_cuda.o gf_fep.o gf_fit.o svtsim_functions.o
 	$(NVCC) $^ -o $@ $(LIBFLAG)
 
 s2: s2.o
