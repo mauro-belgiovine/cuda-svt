@@ -165,11 +165,11 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   if ( TIMER ){
 	  xmlNodePtr init_timing_node = xmlNewNode(NULL, BAD_CAST "init_timing");
 	  xmlAddChild(run_node, init_timing_node);
-	  sprintf(buff,"%f ms",timer[0]);
+	  sprintf(buff,"%f",timer[0]);
 	  xmlNewChild(init_timing_node, NULL, BAD_CAST "struct_init", BAD_CAST buff);
-	  sprintf(buff,"%f ms",timer[1]);
+	  sprintf(buff,"%f",timer[1]);
 	  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_copy_gpu", BAD_CAST buff);
-	  sprintf(buff,"%f ms",timer[2]);
+	  sprintf(buff,"%f",timer[2]);
 	  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_decode_gpu", BAD_CAST buff);
   }
 
@@ -356,13 +356,13 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  if(TIMER){
 		  xmlNodePtr iter_timing_node = xmlNewNode(NULL, BAD_CAST "timing");
 		  xmlAddChild(iter_node, iter_timing_node);
-		  sprintf(buff,"%f ms",timer[3]);
+		  sprintf(buff,"%f",timer[3]);
 		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copyconf_unpack", BAD_CAST buff);
-		  sprintf(buff,"%f ms",timer[4]);
+		  sprintf(buff,"%f",timer[4]);
 		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fep", BAD_CAST buff);
-		  sprintf(buff,"%f ms",timer[5]);
+		  sprintf(buff,"%f",timer[5]);
 		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "fit", BAD_CAST buff);
-		  sprintf(buff,"%f ms",timer[6]);
+		  sprintf(buff,"%f",timer[6]);
 		  xmlNewChild(iter_timing_node, NULL, BAD_CAST "copy_output", BAD_CAST buff);
 	  }
 #endif
@@ -751,7 +751,7 @@ void xmlData_addTiming(xmlDocPtr doc, char * node_name, float time_ms, unsigned 
      */
     for(int i = size - 1; i >= 0; i--) {
 
-    	sprintf(buff,"%f ms",time_ms);
+    	sprintf(buff,"%f",time_ms);
     	xmlNewChild(xpathObj->nodesetval->nodeTab[i], NULL, BAD_CAST node_name, BAD_CAST buff);
 
 
