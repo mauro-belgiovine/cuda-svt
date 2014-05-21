@@ -173,6 +173,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  xmlNewChild(init_timing_node, NULL, BAD_CAST "total_input_decode_gpu", BAD_CAST buff);
   }
 
+
 #endif
 
   // open output file
@@ -259,8 +260,8 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	      xmlNodePtr hit_list_node = xmlNewNode(NULL, BAD_CAST "hit_list");
 	      xmlAddChild(evt_node, hit_list_node);
 
-	      for(int r = 0; r < MAXROAD; r++){
 
+	      for(int r = 0; r < MAXROAD; r++){
 	    	  xmlNodePtr road_node = xmlNewNode(NULL, BAD_CAST "road");
 	    	  sprintf(buff,"%d",r);
 	    	  xmlNewProp(road_node, BAD_CAST "n", BAD_CAST buff);
@@ -282,7 +283,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 
 	    		  xmlAddChild(hit_list_node, road_node);
 
-	    		  //printf("evt_hit [%d, %d] \n", z, r);
+	    		  //printf("evt_hit [ evt %d, road %d] nhit_evt %d \n", iter, r, nhit_evt);
 	      		  for(int p = 0; p < NSVX_PLANE; p++){
 
 	      			xmlNodePtr plane_node = xmlNewNode(NULL, BAD_CAST "plane");
@@ -301,6 +302,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	      		  //printf("\n");
 	      		  }
 	    	  }
+
 	    	  nhit_evt = 0;
 
 	      }
@@ -310,6 +312,9 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  }
 	  if ( TIMER ) stop_time("[DEBUG] read combinations and nhit");
 	  // ------------------------
+
+	  free(fep);
+	  free(evt);
 
 #endif
 
@@ -328,6 +333,7 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
 	  	for (int i=0; i< previous_data.tf->out->ndata; i++) fprintf(OUTCHECK,"%.6x\n", previous_data.tf->out->data[i]);
 	  	if ( TIMER ) timer[8] = stop_time("- print output on file");
 #ifdef DUMP_FOUT
+	  	printf("evt %d\t", iter-1);
 	  	dump_fout(previous_data.tf);
 #endif
 	  	if ( TIMER ) start_time();

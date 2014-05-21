@@ -30,7 +30,7 @@ typedef struct tf_arrays      *tf_arrays_t;
 
 
 //GF
-#define NEVTS 100 //num of events to process in parallel on GPU
+#define NEVTS 128//num of events to process in parallel on GPU
 #define NROADS 64
 #define EVT 0 //all words from the input file are considered belonging to the same event
 
