@@ -485,6 +485,10 @@ void svt_GPU(unsigned int *data_in, int n_words, float *timer, char *fileOut, in
   free(out2);
   free(out3);
 
+#ifdef DUMP_RUNINFO_CSV
+  run_counter++; //increment run_counter
+#endif
+
 }
 
 void setedata_GPU(tf_arrays_t tf, struct extra_data *edata_dev, cudaStream_t stream, cudaEvent_t event) {
