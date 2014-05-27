@@ -9,9 +9,10 @@
 //#include <thrust/device_vector.h>
 
 //#define DUMP_FOUT
-#define DUMP_RUNINFO
+//#define DUMP_RUNINFO_LIBXML
+#define DUMP_RUNINFO_CSV
 
-#ifdef DUMP_RUNINFO
+#ifdef DUMP_RUNINFO_LIBXML
 	#include <libxml/parser.h>
 	#include <libxml/tree.h>
 	#include <libxml/xpath.h>
@@ -27,10 +28,12 @@ void setedata_GPU(tf_arrays_t tf, struct extra_data *edata_dev, cudaStream_t str
 void set_outcable(tf_arrays_t tf);
 void help(char* prog);
 
+#ifdef DUMP_RUNINFO_LIBXML
 void xmlData_create(xmlDocPtr *doc, xmlNodePtr *root_node);
 int xmlData_close(xmlDocPtr doc, char *filename);
 void xmlData_addEvt(xmlNodePtr root_node, xmlNodePtr evt_node);
 void xmlData_addTiming(xmlDocPtr doc, char * node_name, float time_ms, unsigned int iter);
+#endif
 
 // global variables
 int VERBOSE = 0;
@@ -42,13 +45,18 @@ cudaDeviceProp deviceProp;
 // CUDA timer macros
 cudaEvent_t c_start, c_stop;
 
-#ifdef DUMP_RUNINFO
+#ifdef DUMP_RUNINFO_LIBXML
 xmlDocPtr doc = NULL;       	/* document pointer */
 xmlNodePtr root_node = NULL;	/* root node pointer */
 unsigned int run_counter = 0;
 #endif
-// SVT-GPU execution data-class
 
+#ifdef DUMP_RUNINFO_CSV
+FILE *ft;
+unsigned int run_counter = 0;
+#endif
+
+// SVT-GPU execution data-class
 typedef struct tf_arrays_gpu *tf_gpu_t;
 
 struct tf_arrays_gpu {
@@ -221,3 +229,118 @@ void gf_devData::tf_init(){
 	svtsim_fconread(tf); //TODO: Che fa sta funzione???
 	// --- STOP inizializzazione tf
 }
+
+#ifdef DUMP_RUNINFO
+//create the xml-file for saving execution data
+void xmlData_create(xmlDocPtr *doc, xmlNodePtr *root_node){
+
+#if defined(LIBXML_TREE_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
+
+    LIBXML_TEST_VERSION;
+
+    /*
+     * Creates a new document, a node and set it as a root node
+     */
+    *doc = xmlNewDoc(BAD_CAST "1.0");
+    *root_node = xmlNewNode(NULL, BAD_CAST "svt_run_data");
+    xmlDocSetRootElement(*doc, *root_node);
+
+#else
+	printf("ERROR: no libxml2 tree support!\n");
+#endif
+
+}
+
+int xmlData_close(xmlDocPtr doc, char *filename){
+#if defined(LIBXML_TREE_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
+
+	int result;
+	result = xmlSaveFormatFileEnc(filename, doc, "UTF-8", 1);
+	/*free the document */
+	xmlFreeDoc(doc);
+
+	/*
+	 *Free the global variables that may
+	 *have been allocated by the parser.
+	 */
+	xmlCleanupParser();
+
+	return result;
+#else
+	printf("ERROR: no libxml2 tree support!\n");
+#endif
+}
+
+//add event-node to xml
+void xmlData_addEvt(xmlNodePtr root_node, xmlNodePtr evt_node){
+
+#if defined(LIBXML_TREE_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
+	xmlAddChild(root_node, evt_node);
+#else
+	printf("ERROR: no libxml2 tree support!\n");
+#endif
+
+}
+
+void xmlData_addTiming(xmlDocPtr doc, char * node_name, float time_ms, unsigned int iter){
+
+	char buff[32];
+	xmlXPathContextPtr xpathCtx;
+	xmlXPathObjectPtr xpathObj;
+
+	/* Create xpath evaluation context */
+	xpathCtx = xmlXPathNewContext(doc);
+	if(xpathCtx == NULL) {
+		fprintf(stderr,"Error: unable to create new XPath context\n");
+		exit(1);
+	}
+	/* Evaluate xpath expression */
+	sprintf(buff,"//run[@n='%d']/iter[@n='%d']/timing", run_counter-1, iter);
+	xpathObj = xmlXPathEvalExpression(BAD_CAST buff, xpathCtx);
+	if(xpathObj == NULL) {
+        fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n", buff);
+        exit(1);
+    }
+
+	int size = (xpathObj) ? xpathObj->nodesetval->nodeNr : 0;
+	/*
+     * NOTE: the nodes are processed in reverse order, i.e. reverse document
+     *       order because xmlNodeSetContent can actually free up descendant
+     *       of the node and such nodes may have been selected too ! Handling
+     *       in reverse order ensure that descendant are accessed first, before
+     *       they get removed. Mixing XPath and modifications on a tree must be
+     *       done carefully !
+     */
+    for(int i = size - 1; i >= 0; i--) {
+
+    	sprintf(buff,"%f",time_ms);
+    	xmlNewChild(xpathObj->nodesetval->nodeTab[i], NULL, BAD_CAST node_name, BAD_CAST buff);
+
+
+    	/*
+    	 * All the elements returned by an XPath query are pointers to
+    	 * elements from the tree *except* namespace nodes where the XPath
+    	 * semantic is different from the implementation in libxml2 tree.
+    	 * As a result when a returned node set is freed when
+    	 * xmlXPathFreeObject() is called, that routine must check the
+    	 * element type. But node from the returned set may have been removed
+    	 * by xmlNodeSetContent() resulting in access to freed data.
+    	 * This can be exercised by running
+    	 *       valgrind xpath2 test3.xml '//discarded' discarded
+    	 * There is 2 ways around it:
+		 *   - make a copy of the pointers to the nodes from the result set
+	   	 *     then call xmlXPathFreeObject() and then modify the nodes
+	   	 * or
+	   	 *   - remove the reference to the modified nodes from the node set
+	   	 *     as they are processed, if they are not namespace nodes.
+	   	 */
+	   	if (xpathObj->nodesetval->nodeTab[i]->type != XML_NAMESPACE_DECL) xpathObj->nodesetval->nodeTab[i] = NULL;
+	}
+
+    /* Cleanup of XPath data */
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+
+}
+#endif
+

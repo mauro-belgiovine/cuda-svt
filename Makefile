@@ -7,7 +7,7 @@ INCFLAG=-I$(CUDA_DIR)/include -I.. `xml2-config --cflags`
 
 LIBFLAG=`xml2-config --libs`
 
-DEBUG_FLAG=#-g -G
+DEBUG_FLAG=-g# -G
 PTX_FLAG=-ptx
 
 # CUDA code generation flags
