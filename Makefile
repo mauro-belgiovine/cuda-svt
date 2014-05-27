@@ -3,9 +3,9 @@ CUDA_DIR=/usr/local/cuda-5.5
 CUDA_SDK_DIR=/opt/cuda/sdk
 
 #INCFLAG=-I$(CUDA_DIR)/include -I$(CUDA_SDK_DIR)/C/common/inc -I..
-INCFLAG=-I$(CUDA_DIR)/include -I.. `xml2-config --cflags`
+INCFLAG=-I$(CUDA_DIR)/include -I.. #`xml2-config --cflags`
 
-LIBFLAG=`xml2-config --libs`
+#LIBFLAG=`xml2-config --libs`
 
 DEBUG_FLAG=-g# -G
 PTX_FLAG=-ptx
