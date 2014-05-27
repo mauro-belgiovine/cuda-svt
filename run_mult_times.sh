@@ -6,6 +6,6 @@ do
    sed -i "s/#define NEVTS $y/#define NEVTS $i/g" svtsim_functions.h 
    cat svtsim_functions.h | grep "define NEVTS"
    make clean && make
-   ./svt_gpu -t -i ebjt0p_fromp36_hboutForGPU -l 100 
+   ./svt_gpu -t -i ebjt0p_fromp36_hboutForGPU -l 10 
    y=$i
 done
